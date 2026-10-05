@@ -1,0 +1,40 @@
+name: Build KMP iOS XCFramework
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    name: Build iOS XCFramework
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Make Gradlew Executable
+        run: chmod +x gradlew
+
+      - name: Build KMP Shared iOS Frameworks
+        run: |
+          ./gradlew :shared:linkReleaseFrameworkIosArm64 :shared:linkReleaseFrameworkIosSimulatorArm64 --stacktrace
+
+      - name: Upload iOS Framework Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TataskanPOS-iOS-Framework
+          path: shared/build/bin/iosArm64/releaseFramework/
+          retention-days: 14
