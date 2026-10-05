@@ -1,0 +1,29 @@
+ {
+  "project_info": {
+    "project_number": "367697758542",
+    "project_id": "sukipos",
+    "storage_bucket": "sukipos.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:367697758542:android:738bd877f4794c3795b61f",
+        "android_client_info": {
+          "package_name": "com.tataskan.pos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVUS3a2Hb5pqVDqC0_jm9Gtur3sUjfrPM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

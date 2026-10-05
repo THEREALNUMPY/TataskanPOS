@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Stylized "T" Stamp & Scanner Icon -->
+    <!-- Top Bar of "T" / Scanner Hood -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,28 h52 c4.4,0 8,3.6 8,8 v4 c0,4.4 -3.6,8 -8,8 H28 c-4.4,0 -8,-3.6 -8,-8 v-4 c0,-4.4 3.6,-8 8,-8 z" />
+
+    <!-- Cyan Laser Line -->
+    <path
+        android:fillColor="#00E5FF"
+        android:pathData="M22,33 h64 v2 H22 z" />
+
+    <!-- Stem of "T" / Barcode Pillar -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M46,48 h16 v28 c0,4.4 -3.6,8 -8,8 -4.4,0 -8,-3.6 -8,-8 V48 z" />
+
+    <!-- Accent Barcode Lines -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,52 h4 v20 h-4 z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M39,52 h2 v20 h-2 z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M67,52 h2 v20 h-2 z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M72,52 h4 v20 h-4 z" />
+
+</vector>
