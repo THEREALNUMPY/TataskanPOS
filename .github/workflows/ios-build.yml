@@ -11,6 +11,8 @@ jobs:
   build-ios:
     name: Build iOS XCFramework
     runs-on: macos-14
+    env:
+      GRADLE_OPTS: "-Xmx4g -Dorg.gradle.parallel=false"
 
     steps:
       - name: Checkout Code
@@ -28,9 +30,13 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x gradlew
 
-      - name: Build KMP Shared iOS Frameworks
+      - name: Build KMP Shared iOS Framework (Arm64)
         run: |
-          ./gradlew :shared:linkReleaseFrameworkIosArm64 :shared:linkReleaseFrameworkIosSimulatorArm64 --stacktrace
+          ./gradlew :shared:linkReleaseFrameworkIosArm64 --stacktrace
+
+      - name: Build KMP Shared iOS Framework (Simulator Arm64)
+        run: |
+          ./gradlew :shared:linkReleaseFrameworkIosSimulatorArm64 --stacktrace
 
       - name: Upload iOS Framework Artifact
         uses: actions/upload-artifact@v4
