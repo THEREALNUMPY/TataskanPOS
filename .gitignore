@@ -8,6 +8,8 @@ build/
 app/build/
 shared/build/
 .artifacts/
+.agent/
+APP_BLUEPRINT.md
 /captures
 .externalNativeBuild
 .cxx
