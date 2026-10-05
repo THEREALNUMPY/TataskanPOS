@@ -29,89 +29,89 @@ class PosRepository(
 ) {
     // Products
     val allProducts: Flow<List<Product>> = productDao.getAllProducts()
-        .flowOn(Dispatchers.IO)
+        .flowOn(Dispatchers.Default)
 
-    suspend fun getProductById(id: Long) = withContext(Dispatchers.IO) {
+    suspend fun getProductById(id: Long) = withContext(Dispatchers.Default) {
         productDao.getProductById(id)
     }
 
-    suspend fun getProductByBarcode(barcode: String) = withContext(Dispatchers.IO) {
+    suspend fun getProductByBarcode(barcode: String) = withContext(Dispatchers.Default) {
         productDao.getProductByBarcode(barcode)
     }
 
-    suspend fun addProduct(product: Product) = withContext(Dispatchers.IO) {
+    suspend fun addProduct(product: Product) = withContext(Dispatchers.Default) {
         productDao.insertProduct(product)
     }
 
-    suspend fun updateProduct(product: Product) = withContext(Dispatchers.IO) {
+    suspend fun updateProduct(product: Product) = withContext(Dispatchers.Default) {
         productDao.updateProduct(product)
     }
 
-    suspend fun deleteProduct(product: Product) = withContext(Dispatchers.IO) {
+    suspend fun deleteProduct(product: Product) = withContext(Dispatchers.Default) {
         productDao.deleteProduct(product)
     }
 
     // Categories
     val allCategories: Flow<List<Category>> = categoryDao.getAllCategories()
-        .flowOn(Dispatchers.IO)
+        .flowOn(Dispatchers.Default)
 
-    suspend fun addCategory(category: Category) = withContext(Dispatchers.IO) {
+    suspend fun addCategory(category: Category) = withContext(Dispatchers.Default) {
         categoryDao.insertCategory(category)
     }
 
-    suspend fun deleteCategory(id: Int) = withContext(Dispatchers.IO) {
+    suspend fun deleteCategory(id: Int) = withContext(Dispatchers.Default) {
         categoryDao.deleteCategory(id)
     }
 
-    suspend fun getCategoryByName(name: String) = withContext(Dispatchers.IO) {
+    suspend fun getCategoryByName(name: String) = withContext(Dispatchers.Default) {
         categoryDao.getCategoryByName(name)
     }
 
     // Transactions
     val allTransactions: Flow<List<TransactionWithItems>> = transactionDao.getAllTransactionsWithItems()
-        .flowOn(Dispatchers.IO)
+        .flowOn(Dispatchers.Default)
 
-    suspend fun getTransactionById(id: Long) = withContext(Dispatchers.IO) {
+    suspend fun getTransactionById(id: Long) = withContext(Dispatchers.Default) {
         transactionDao.getTransactionById(id)
     }
 
     fun getTransactionsInRange(startTime: Long, endTime: Long): Flow<List<TransactionWithItems>> =
         transactionDao.getTransactionsInRangeWithItems(startTime, endTime)
-            .flowOn(Dispatchers.IO)
+            .flowOn(Dispatchers.Default)
 
-    suspend fun completeTransaction(transaction: Transaction, items: List<TransactionItem>): Long = withContext(Dispatchers.IO) {
+    suspend fun completeTransaction(transaction: Transaction, items: List<TransactionItem>): Long = withContext(Dispatchers.Default) {
         transactionDao.insertFullTransaction(transaction, items)
     }
 
     // Promos
     val allPromos: Flow<List<Promo>> = promoDao.getAllPromos()
-        .flowOn(Dispatchers.IO)
+        .flowOn(Dispatchers.Default)
 
-    suspend fun getPromoByCode(code: String) = withContext(Dispatchers.IO) {
+    suspend fun getPromoByCode(code: String) = withContext(Dispatchers.Default) {
         promoDao.getPromoByCode(code)
     }
 
-    suspend fun addPromo(promo: Promo) = withContext(Dispatchers.IO) {
+    suspend fun addPromo(promo: Promo) = withContext(Dispatchers.Default) {
         promoDao.insertPromo(promo)
     }
 
-    suspend fun updatePromo(promo: Promo) = withContext(Dispatchers.IO) {
+    suspend fun updatePromo(promo: Promo) = withContext(Dispatchers.Default) {
         promoDao.updatePromo(promo)
     }
 
-    suspend fun deletePromo(promo: Promo) = withContext(Dispatchers.IO) {
+    suspend fun deletePromo(promo: Promo) = withContext(Dispatchers.Default) {
         promoDao.deletePromo(promo)
     }
 
     // Stock Adjustments
     val allAdjustments: Flow<List<StockAdjustment>> = stockAdjustmentDao.getAllAdjustments()
-        .flowOn(Dispatchers.IO)
+        .flowOn(Dispatchers.Default)
 
     fun getAdjustmentsForProduct(productId: Long): Flow<List<StockAdjustment>> =
         stockAdjustmentDao.getAdjustmentsForProduct(productId)
-            .flowOn(Dispatchers.IO)
+            .flowOn(Dispatchers.Default)
 
-    suspend fun addAdjustment(adjustment: StockAdjustment) = withContext(Dispatchers.IO) {
+    suspend fun addAdjustment(adjustment: StockAdjustment) = withContext(Dispatchers.Default) {
         stockAdjustmentDao.insertAdjustment(adjustment)
     }
 }

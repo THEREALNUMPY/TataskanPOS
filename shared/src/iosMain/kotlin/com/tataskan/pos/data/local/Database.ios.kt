@@ -19,6 +19,6 @@ actual fun getDatabaseBuilder(): RoomDatabase.Builder<AppDatabase> {
     val path = documentDirectory?.path + "/tataskan_database"
     return Room.databaseBuilder<AppDatabase>(
         name = path,
-        factory = { AppDatabase::class.instantiateImpl() }
+        factory = { AppDatabaseConstructor.initialize() }
     ).fallbackToDestructiveMigration(true)
 }
