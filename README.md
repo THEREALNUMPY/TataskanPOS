@@ -39,16 +39,6 @@ Welcome to **TataskanPOS**! I built this application as a lightweight, offline-f
 
 ---
 
-## 🚀 How to Run the App
-
-1. Clone or download this repository.
-2. Open the project in **Android Studio**.
-3. Let Gradle finish syncing dependencies.
-4. Connect an Android phone or launch an emulator (Android 6.0 / API 23 or higher).
-5. Press **Run (`Shift + F10`)**.
-
----
-
 ## 📄 License
 
 This project is licensed under the [Apache 2.0 License](LICENSE).
