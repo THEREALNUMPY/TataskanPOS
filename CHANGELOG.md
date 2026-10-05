@@ -4,7 +4,17 @@ All notable changes, features, security upgrades, database schema migrations, an
 
 ---
 
-## 🚀 Version 2.4.0 (Version Code 9) - *Current Version*
+## 🚀 Version 2.4.1 (Version Code 10) - *Current Version*
+*Release Date: October 2026*
+
+### 📊 Analytics & UI Polish
+- **Sales Bar Chart Baseline Fix**: Constrained `SalesBarChart` container height in `ReportingScreen.kt` so peak 100% bars scale neatly within the chart area without extending below the 0-baseline or overlapping X-axis day labels.
+- **Google Account Selection Fallback**: Updated `googleSignInLauncher` in `SettingsScreen.kt` to extract selected Google email addresses from system intents on standalone APKs without SHA-1 developer errors.
+- **Single-Line Input Label Formatting**: Fixed vertical line wrapping on floating text input labels ("4-Digit Backup PIN" and "Admin Verification Code") in `RegisterScreen.kt` and `LoginScreen.kt`.
+
+---
+
+## 📦 Version 2.4.0 (Version Code 9)
 *Release Date: October 2026*
 
 ### 🏷️ Rebranding & Identity

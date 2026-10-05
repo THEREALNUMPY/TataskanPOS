@@ -303,67 +303,99 @@ fun SalesBarChart(
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         shape = RoundedCornerShape(20.dp)
     ) {
-        Box(modifier = Modifier.padding(20.dp)) {
-            // Y-Axis Labels and Gridlines
-            Column(
-                modifier = Modifier.fillMaxSize().padding(bottom = 24.dp),
-                verticalArrangement = Arrangement.SpaceBetween
+        Column(modifier = Modifier.padding(20.dp)) {
+            // Chart Area with Y-Axis Gridlines and Scaled Bars
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp)
             ) {
-                listOf(maxRevenue, maxRevenue * 0.5, 0.0).forEach { valLabel ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = if (valLabel >= 1000) "${(valLabel/1000).toInt()}k" else valLabel.toInt().toString(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
-                            modifier = Modifier.width(28.dp)
-                        )
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                            thickness = 0.5.dp
-                        )
+                // Background Y-Axis Labels and Gridlines
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    listOf(maxRevenue, maxRevenue * 0.5, 0.0).forEach { valLabel ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (valLabel >= 1000) "${(valLabel/1000).toInt()}k" else valLabel.toInt().toString(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
+                                modifier = Modifier.width(28.dp)
+                            )
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                thickness = 0.5.dp
+                            )
+                        }
+                    }
+                }
+
+                // Scaled Bars Row positioned within the chart Box
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = 32.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    salesData.forEach { data ->
+                        val isToday = data.date == today
+                        val barHeightFactor = (data.revenue / maxRevenue).toFloat().coerceIn(0.04f, 1.0f)
+                        
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Bottom
+                        ) {
+                            if (data.revenue > 0) {
+                                Text(
+                                    text = if (data.revenue >= 1000) "${(data.revenue/1000).toInt()}k" else data.revenue.toInt().toString(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                                    fontSize = 8.sp,
+                                    color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                            }
+                            
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .fillMaxHeight(barHeightFactor)
+                                    .background(
+                                        color = if (isToday) MaterialTheme.colorScheme.primary 
+                                                else if (barHeightFactor > 0.04f) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                                                else MaterialTheme.colorScheme.outlineVariant,
+                                        shape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)
+                                    )
+                            )
+                        }
                     }
                 }
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // X-Axis Day Labels Row neatly positioned below the chart box
             Row(
-                modifier = Modifier.fillMaxSize().padding(start = 32.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 32.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.Bottom
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 salesData.forEach { data ->
                     val isToday = data.date == today
-                    val barHeightFactor = (data.revenue / maxRevenue).toFloat()
-                    
-                    Column(
+                    Box(
                         modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Bottom
+                        contentAlignment = Alignment.Center
                     ) {
-                        if (data.revenue > 0) {
-                            Text(
-                                text = if (data.revenue >= 1000) "${(data.revenue/1000).toInt()}k" else data.revenue.toInt().toString(),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                                fontSize = 8.sp,
-                                color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                            )
-                        }
-                        
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight(barHeightFactor.coerceAtLeast(0.05f))
-                                .background(
-                                    color = if (isToday) MaterialTheme.colorScheme.primary 
-                                            else if (barHeightFactor > 0) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                                            else MaterialTheme.colorScheme.outlineVariant,
-                                    shape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)
-                                )
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = data.date,
                             style = MaterialTheme.typography.labelSmall,

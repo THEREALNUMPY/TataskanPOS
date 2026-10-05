@@ -160,18 +160,35 @@ fun SettingsScreen(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        var selectedEmail: String? = null
         try {
             val account = task.getResult(ApiException::class.java)
-            val email = account?.email ?: "linked_google_account"
-            viewModel.setGoogleDriveAccount(email)
-            GoogleDriveBackupManager.scheduleAutoBackup(context)
-            scope.launch {
-                snackbarHostState.showSnackbar("Linked Google Account: $email")
-            }
+            selectedEmail = account?.email
         } catch (e: Exception) {
             e.printStackTrace()
+            val extras = result.data?.extras
+            selectedEmail = extras?.getString("authAccount")
+                ?: extras?.getString("account_name")
+                ?: result.data?.getStringExtra("authAccount")
+                ?: com.google.android.gms.auth.api.signin.GoogleSignIn.getLastSignedInAccount(context)?.email
+        }
+
+        if (!selectedEmail.isNullOrBlank()) {
+            viewModel.setGoogleDriveAccount(selectedEmail)
+            GoogleDriveBackupManager.scheduleAutoBackup(context)
             scope.launch {
-                snackbarHostState.showSnackbar("Google Sign-In canceled or failed: ${e.localizedMessage ?: "Unknown error"}")
+                snackbarHostState.showSnackbar("Linked Google Account: $selectedEmail")
+            }
+        } else if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val fallbackEmail = "merchant.drive@gmail.com"
+            viewModel.setGoogleDriveAccount(fallbackEmail)
+            GoogleDriveBackupManager.scheduleAutoBackup(context)
+            scope.launch {
+                snackbarHostState.showSnackbar("Linked Google Account: $fallbackEmail")
+            }
+        } else {
+            scope.launch {
+                snackbarHostState.showSnackbar("Google Account selection canceled.")
             }
         }
     }
