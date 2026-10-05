@@ -1,7 +1,9 @@
 package com.tataskan.pos.data.local
 
+import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.RoomDatabaseConstructor
 import com.tataskan.pos.data.AuthDao
 import com.tataskan.pos.data.ProductDao
 import com.tataskan.pos.data.TransactionDao
@@ -21,6 +23,7 @@ import com.tataskan.pos.data.entity.StockAdjustment
     version = 19,
     exportSchema = false
 )
+@ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun authDao(): AuthDao
     abstract fun productDao(): ProductDao
@@ -29,3 +32,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun promoDao(): PromoDao
     abstract fun stockAdjustmentDao(): StockAdjustmentDao
 }
+
+// Room KMP constructor for non-Android targets (iOS, Native)
+@Suppress("NO_ACTUAL_FOR_EXPECT")
+expect object AppDatabaseConstructor : RoomDatabaseConstructor<AppDatabase>
