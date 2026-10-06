@@ -652,10 +652,10 @@ fun SukiPosTopAppBar(
     if (activeStep?.id == "pos") return
     
     val title = when (currentKey) {
-        TataskanNavKey.Splash -> "SukiPOS"
+        TataskanNavKey.Splash -> "TataskanPOS"
         TataskanNavKey.Login -> "Login"
         TataskanNavKey.Register -> "Register"
-        TataskanNavKey.Home -> "SukiPOS"
+        TataskanNavKey.Home -> "TataskanPOS"
         TataskanNavKey.ProductList -> Strings.get("inventory", lang)
         is TataskanNavKey.ProductDetail -> Strings.get("product_details", lang)
         is TataskanNavKey.ProductAddEdit -> if (currentKey.id == null) Strings.get("add_product", lang) else Strings.get("edit_product", lang)

@@ -68,7 +68,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     )
 
     val storeName: StateFlow<String> = repository.storeName.stateIn(
-        scope = viewModelScope, started = SharingStarted.WhileSubscribed(5000), initialValue = "SukiPOS Store"
+        scope = viewModelScope, started = SharingStarted.WhileSubscribed(5000), initialValue = "TataskanPOS Store"
     )
     val storeLogoUri: StateFlow<String?> = repository.storeLogoUri.stateIn(
         scope = viewModelScope, started = SharingStarted.WhileSubscribed(5000), initialValue = null
