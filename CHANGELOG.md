@@ -4,7 +4,16 @@ All notable changes, features, security upgrades, database schema migrations, an
 
 ---
 
-## 🚀 Version 2.4.1 (Version Code 10) - *Current Version*
+## 🚀 Version 2.4.2 (Version Code 11) - *Current Version*
+*Release Date: October 2026*
+
+### ☁️ Cloud Sync & Settings UI Refinements
+- **Google Drive Work in Progress Badge**: Added a prominent `🚧 Work in Progress` status badge and notice banner to the Google Drive Cloud Backup section in `SettingsScreen.kt`.
+- **Local Backup Guidance**: Prompted merchants to utilize the fully functional Local File Backup & Restore engine for saving and restoring store inventory and transactions.
+
+---
+
+## 📦 Version 2.4.1 (Version Code 10)
 *Release Date: October 2026*
 
 ### 📊 Analytics & UI Polish
