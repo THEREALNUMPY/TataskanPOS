@@ -37,6 +37,7 @@ class SettingsRepository(private val context: Context) {
         val MAYA_QR_URI = stringPreferencesKey("maya_qr_uri")
         val GOOGLE_DRIVE_ACCOUNT = stringPreferencesKey("google_drive_account")
         val LAST_DRIVE_BACKUP_TIME = longPreferencesKey("last_drive_backup_time")
+        val BACKUP_FREQUENCY = stringPreferencesKey("backup_frequency")
     }
 
     val currencySymbol: Flow<String> = context.dataStore.data.map { it[Keys.CURRENCY_SYMBOL] ?: "₱" }
@@ -62,10 +63,12 @@ class SettingsRepository(private val context: Context) {
     val mayaQrUri: Flow<String?> = context.dataStore.data.map { it[Keys.MAYA_QR_URI] }
     val googleDriveAccount: Flow<String?> = context.dataStore.data.map { it[Keys.GOOGLE_DRIVE_ACCOUNT] }
     val lastDriveBackupTime: Flow<Long> = context.dataStore.data.map { it[Keys.LAST_DRIVE_BACKUP_TIME] ?: 0L }
+    val backupFrequency: Flow<String> = context.dataStore.data.map { it[Keys.BACKUP_FREQUENCY] ?: "DAILY" }
 
     suspend fun updateCurrencySymbol(symbol: String) = context.dataStore.edit { it[Keys.CURRENCY_SYMBOL] = symbol }
     suspend fun updateShowNameOnLabel(show: Boolean) = context.dataStore.edit { it[Keys.SHOW_NAME_ON_LABEL] = show }
     suspend fun updateShowPriceOnLabel(show: Boolean) = context.dataStore.edit { it[Keys.SHOW_PRICE_ON_LABEL] = show }
+    suspend fun updateBackupFrequency(frequency: String) = context.dataStore.edit { it[Keys.BACKUP_FREQUENCY] = frequency }
     
     suspend fun updateGcashQrUri(uri: String?) = context.dataStore.edit {
         if (uri == null) it.remove(Keys.GCASH_QR_URI) else it[Keys.GCASH_QR_URI] = uri

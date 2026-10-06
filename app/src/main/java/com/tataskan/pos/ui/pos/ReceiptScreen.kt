@@ -171,7 +171,7 @@ fun ReceiptScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         
                         SummaryRow(Strings.get("cash_received", lang), transaction!!.transaction.amountReceived, currencySymbol)
-                        SummaryRow(Strings.get("change_label", lang), transaction!!.transaction.amountReceived - transaction!!.transaction.total, currencySymbol)
+                        SummaryRow(Strings.get("change_label", lang), (transaction!!.transaction.amountReceived - transaction!!.transaction.total).coerceAtLeast(0.0), currencySymbol)
                         
                         Spacer(modifier = Modifier.height(24.dp))
                         

@@ -367,14 +367,21 @@ fun SalesBarChart(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .fillMaxHeight(barHeightFactor)
-                                    .background(
-                                        color = if (isToday) MaterialTheme.colorScheme.primary 
-                                                else if (barHeightFactor > 0.04f) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                                                else MaterialTheme.colorScheme.outlineVariant,
-                                        shape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)
-                                    )
-                            )
+                                    .weight(1f),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .fillMaxHeight(barHeightFactor)
+                                        .background(
+                                            color = if (isToday) MaterialTheme.colorScheme.primary 
+                                                    else if (barHeightFactor > 0.04f) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                                                    else MaterialTheme.colorScheme.outlineVariant,
+                                            shape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)
+                                        )
+                                )
+                            }
                         }
                     }
                 }
@@ -421,6 +428,8 @@ fun SummaryCard(
     lang: String = "en"
 ) {
     val isZero = revenue == 0.0
+    val formattedAmount = CurrencyUtils.formatCurrency(revenue, currencySymbol, includeDecimals = revenue % 1.0 != 0.0)
+
     ElevatedCard(
         modifier = modifier,
         colors = CardDefaults.elevatedCardColors(
@@ -430,8 +439,8 @@ fun SummaryCard(
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = title.uppercase(), 
@@ -441,19 +450,27 @@ fun SummaryCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
             
-            Row(verticalAlignment = Alignment.Bottom) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text(
-                    text = CurrencyUtils.formatCurrency(revenue, currencySymbol),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Black,
+                    text = formattedAmount,
+                    style = when {
+                        revenue >= 100_000 -> MaterialTheme.typography.titleMedium
+                        revenue >= 10_000 -> MaterialTheme.typography.headlineSmall
+                        else -> MaterialTheme.typography.headlineMedium
+                    },
+                    fontWeight = FontWeight.ExtraBold,
                     color = if (isZero) MaterialTheme.colorScheme.outline.copy(alpha = 0.4f) else MaterialTheme.colorScheme.primary,
-                    maxLines = 1
+                    maxLines = 2,
+                    softWrap = true,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
                 if (!isZero) {
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Box(
                         modifier = Modifier
-                            .padding(bottom = 6.dp)
                             .background(Color(0xFFE8F5E9), CircleShape)
                             .padding(4.dp)
                     ) {
@@ -461,7 +478,7 @@ fun SummaryCard(
                             Icons.AutoMirrored.Filled.TrendingUp, 
                             contentDescription = null, 
                             tint = Color(0xFF2E7D32), 
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(12.dp)
                         )
                     }
                 }
@@ -471,7 +488,7 @@ fun SummaryCard(
                 text = "$count ${Strings.get("transactions_count", lang)}", 
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
             )
         }
     }

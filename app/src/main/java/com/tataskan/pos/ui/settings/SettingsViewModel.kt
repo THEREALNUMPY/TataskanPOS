@@ -115,9 +115,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val lastDriveBackupTime: StateFlow<Long> = repository.lastDriveBackupTime.stateIn(
         scope = viewModelScope, started = SharingStarted.WhileSubscribed(5000), initialValue = 0L
     )
+    val backupFrequency: StateFlow<String> = repository.backupFrequency.stateIn(
+        scope = viewModelScope, started = SharingStarted.WhileSubscribed(5000), initialValue = "DAILY"
+    )
 
     fun setCurrencySymbol(symbol: String) = viewModelScope.launch { repository.updateCurrencySymbol(symbol.trim()) }
     fun setShowNameOnLabel(show: Boolean) = viewModelScope.launch { repository.updateShowNameOnLabel(show) }
+    fun setBackupFrequency(frequency: String) = viewModelScope.launch { repository.updateBackupFrequency(frequency) }
     fun setShowPriceOnLabel(show: Boolean) = viewModelScope.launch { repository.updateShowPriceOnLabel(show) }
     
     fun setStoreName(name: String) = viewModelScope.launch { repository.updateStoreName(name.trim()) }

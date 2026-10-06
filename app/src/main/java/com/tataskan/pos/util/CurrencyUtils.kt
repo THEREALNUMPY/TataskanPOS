@@ -1,5 +1,6 @@
 package com.tataskan.pos.util
 
+import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
 
@@ -18,9 +19,13 @@ object CurrencyUtils {
     }
     
     /**
-     * Formats a double value as a currency string with the given symbol.
+     * Formats a double value as a currency string with comma thousands separators.
      */
-    fun formatCurrency(amount: Double, symbol: String): String {
-        return String.format(Locale.US, "%s%.2f", symbol, amount)
+    fun formatCurrency(amount: Double, symbol: String, includeDecimals: Boolean = true): String {
+        val formatter = NumberFormat.getNumberInstance(Locale.US).apply {
+            minimumFractionDigits = if (includeDecimals) 2 else 0
+            maximumFractionDigits = if (includeDecimals) 2 else 0
+        }
+        return "$symbol${formatter.format(amount)}"
     }
 }

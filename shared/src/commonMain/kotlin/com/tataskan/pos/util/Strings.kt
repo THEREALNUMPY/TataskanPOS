@@ -342,7 +342,16 @@ object Strings {
             "deselect_all" to "Deselect All",
             "label_preview" to "Label Preview",
             "barcode_code" to "Barcode",
-            "qr_code" to "QR Code"
+            "qr_code" to "QR Code",
+            "backup_frequency" to "Cloud Backup Frequency",
+            "freq_daily" to "Daily",
+            "freq_weekly" to "Weekly",
+            "freq_monthly" to "Monthly",
+            "sync_confirm_title" to "Upload Cloud Backup",
+            "sync_confirm_desc" to "This will create a fresh compressed backup of your inventory, transaction history, and settings, and upload it directly to your Google Drive. Do you want to proceed?",
+            "upload_cloud_backup_now" to "Upload Cloud Backup Now",
+            "unlink_confirm_title" to "Unlink Google Account",
+            "unlink_confirm_desc" to "Are you sure you want to unlink your Google Account? Automatic cloud backups will be paused."
         ),
         "tl" to mapOf(
             "app_name" to "TataskanPOS",
@@ -677,7 +686,16 @@ object Strings {
             "deselect_all" to "Alisin ang Lahat",
             "label_preview" to "Preview ng Label",
             "barcode_code" to "Barcode",
-            "qr_code" to "QR Code"
+            "qr_code" to "QR Code",
+            "backup_frequency" to "Dalas ng Cloud Backup",
+            "freq_daily" to "Araw-araw",
+            "freq_weekly" to "Linggo-linggo",
+            "freq_monthly" to "Buwan-buwan",
+            "sync_confirm_title" to "Mag-upload ng Cloud Backup",
+            "sync_confirm_desc" to "I-e-export at i-u-upload ang bagong backup archive sa iyong Google Drive. Nais mo bang magpatuloy?",
+            "upload_cloud_backup_now" to "Mag-upload ng Cloud Backup Now",
+            "unlink_confirm_title" to "I-unlink ang Google Account",
+            "unlink_confirm_desc" to "Sigurado ka bang nais mong i-unlink ang iyong Google Account? Mahihinto pansamantalang ang mga cloud backup."
         )
     )
 

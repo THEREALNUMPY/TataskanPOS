@@ -142,6 +142,27 @@ object PdfUtils {
         canvas.drawText("TOTAL:", 20f, y, paint)
         paint.textAlign = Paint.Align.RIGHT
         canvas.drawText(CurrencyUtils.formatCurrency(transaction.transaction.total, currencySymbol), 280f, y, paint)
+        y += 15f
+
+        paint.isFakeBoldText = false
+        paint.textAlign = Paint.Align.LEFT
+        val payMethodLabel = if (transaction.transaction.paymentMethod == "DIGITAL") "Digital (QR)" else "Cash"
+        canvas.drawText("Payment:", 20f, y, paint)
+        paint.textAlign = Paint.Align.RIGHT
+        canvas.drawText(payMethodLabel, 280f, y, paint)
+        y += 15f
+
+        paint.textAlign = Paint.Align.LEFT
+        canvas.drawText("Received:", 20f, y, paint)
+        paint.textAlign = Paint.Align.RIGHT
+        canvas.drawText(CurrencyUtils.formatCurrency(transaction.transaction.amountReceived, currencySymbol), 280f, y, paint)
+        y += 15f
+
+        paint.textAlign = Paint.Align.LEFT
+        canvas.drawText("Change:", 20f, y, paint)
+        paint.textAlign = Paint.Align.RIGHT
+        val changeAmount = (transaction.transaction.amountReceived - transaction.transaction.total).coerceAtLeast(0.0)
+        canvas.drawText(CurrencyUtils.formatCurrency(changeAmount, currencySymbol), 280f, y, paint)
         y += 25f
         
         paint.isFakeBoldText = false

@@ -23,6 +23,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -156,35 +157,64 @@ fun SettingsScreen(
         }
     }
 
+    var showSyncConfirmDialog by remember { mutableStateOf(false) }
+    var showSyncSuccessDialog by remember { mutableStateOf(false) }
+    var showUnlinkConfirmDialog by remember { mutableStateOf(false) }
+    var isSyncingProgress by remember { mutableStateOf(false) }
+
+    val googleAuthConsentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            isSyncingProgress = true
+            scope.launch {
+                val backupRes = GoogleDriveBackupManager.performCloudBackupResult(context)
+                isSyncingProgress = false
+                if (backupRes is com.tataskan.pos.util.CloudBackupResult.Success) {
+                    viewModel.setLastDriveBackupTime(System.currentTimeMillis())
+                    showSyncSuccessDialog = true
+                } else if (backupRes is com.tataskan.pos.util.CloudBackupResult.Failure) {
+                    snackbarHostState.showSnackbar("Cloud Backup Failed: ${backupRes.message}")
+                }
+            }
+        } else {
+            isSyncingProgress = false
+            scope.launch {
+                snackbarHostState.showSnackbar("Google Drive access authorization denied.")
+            }
+        }
+    }
+
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        var selectedEmail: String? = null
-        try {
-            val account = task.getResult(ApiException::class.java)
-            selectedEmail = account?.email
-        } catch (e: Exception) {
-            e.printStackTrace()
-            val extras = result.data?.extras
-            selectedEmail = extras?.getString("authAccount")
-                ?: extras?.getString("account_name")
-                ?: result.data?.getStringExtra("authAccount")
-                ?: com.google.android.gms.auth.api.signin.GoogleSignIn.getLastSignedInAccount(context)?.email
-        }
-
-        if (!selectedEmail.isNullOrBlank()) {
-            viewModel.setGoogleDriveAccount(selectedEmail)
-            GoogleDriveBackupManager.scheduleAutoBackup(context)
-            scope.launch {
-                snackbarHostState.showSnackbar("Linked Google Account: $selectedEmail")
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val data = result.data
+            var selectedEmail: String? = null
+            if (data != null) {
+                try {
+                    val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(data)
+                    val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
+                    selectedEmail = account?.email
+                } catch (e: Exception) {
+                    // Ignored
+                }
+                if (selectedEmail.isNullOrBlank()) {
+                    selectedEmail = data.getStringExtra(android.accounts.AccountManager.KEY_ACCOUNT_NAME)
+                        ?: data.extras?.getString("authAccount")
+                        ?: data.extras?.getString("account_name")
+                }
             }
-        } else if (result.resultCode == android.app.Activity.RESULT_OK) {
-            val fallbackEmail = "merchant.drive@gmail.com"
-            viewModel.setGoogleDriveAccount(fallbackEmail)
-            GoogleDriveBackupManager.scheduleAutoBackup(context)
-            scope.launch {
-                snackbarHostState.showSnackbar("Linked Google Account: $fallbackEmail")
+            if (!selectedEmail.isNullOrBlank()) {
+                viewModel.setGoogleDriveAccount(selectedEmail)
+                GoogleDriveBackupManager.scheduleAutoBackup(context)
+                scope.launch {
+                    snackbarHostState.showSnackbar("Linked Google Account: $selectedEmail")
+                }
+            } else {
+                scope.launch {
+                    snackbarHostState.showSnackbar("Google Account linking failed. No account selected.")
+                }
             }
         } else {
             scope.launch {
@@ -197,6 +227,7 @@ fun SettingsScreen(
     val mayaQrUri by viewModel.mayaQrUri.collectAsState()
     val googleDriveAccount by viewModel.googleDriveAccount.collectAsState()
     val lastDriveBackupTime by viewModel.lastDriveBackupTime.collectAsState()
+    val backupFrequency by viewModel.backupFrequency.collectAsState()
 
     var activeDownloadFile by remember { mutableStateOf<File?>(null) }
     var activeRestoreFile by remember { mutableStateOf<File?>(null) }
@@ -870,103 +901,77 @@ fun SettingsScreen(
                     }
                 }
 
-                // Google Drive Auto-Backup Card
+                // Google Drive Auto-Backup Card (Work in Progress)
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(Strings.get("google_drive_backup", languageState), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        }
-                        Text(
-                            text = Strings.get("google_drive_desc", languageState),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("${Strings.get("linked_as", languageState)} ", style = MaterialTheme.typography.labelSmall)
-                            Text(
-                                text = googleDriveAccount ?: Strings.get("not_linked", languageState),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = if (googleDriveAccount != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                            )
-                        }
-                        if (lastDriveBackupTime > 0L) {
-                            val lastSyncDate = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()).format(Date(lastDriveBackupTime))
-                            Text("${Strings.get("last_cloud_sync", languageState)} $lastSyncDate", style = MaterialTheme.typography.labelSmall)
-                        }
-
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            if (googleDriveAccount == null) {
-                                Button(
-                                    onClick = {
-                                        try {
-                                            val client = GoogleDriveBackupManager.getSignInClient(context)
-                                            googleSignInLauncher.launch(client.signInIntent)
-                                        } catch (e: Exception) {
-                                            e.printStackTrace()
-                                            scope.launch {
-                                                snackbarHostState.showSnackbar("Could not launch Google Sign-In: ${e.localizedMessage}")
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = MaterialTheme.shapes.medium
-                                ) {
-                                    Icon(Icons.Default.CloudQueue, contentDescription = null, modifier = Modifier.size(18.dp))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(Strings.get("link_google_drive", languageState), fontWeight = FontWeight.Bold)
-                                }
-                            } else {
-                                OutlinedButton(
-                                    onClick = {
-                                        try {
-                                            val client = GoogleDriveBackupManager.getSignInClient(context)
-                                            client.signOut().addOnCompleteListener {
-                                                viewModel.setGoogleDriveAccount(null)
-                                                scope.launch { snackbarHostState.showSnackbar("Google Account unlinked.") }
-                                            }
-                                        } catch (e: Exception) {
-                                            viewModel.setGoogleDriveAccount(null)
-                                            scope.launch { snackbarHostState.showSnackbar("Google Account unlinked.") }
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    shape = MaterialTheme.shapes.medium,
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)
-                                ) {
-                                    Text(Strings.get("unlink_google_drive", languageState), fontSize = 12.sp, maxLines = 1)
-                                }
-
-                                Button(
-                                    onClick = {
-                                        scope.launch {
-                                            val success = GoogleDriveBackupManager.performCloudBackup(context)
-                                            if (success) {
-                                                viewModel.setLastDriveBackupTime(System.currentTimeMillis())
-                                                snackbarHostState.showSnackbar("Cloud Sync Complete!")
-                                            } else {
-                                                snackbarHostState.showSnackbar("Cloud Sync Failed.")
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1.2f),
-                                    shape = MaterialTheme.shapes.medium,
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)
-                                ) {
-                                    Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(Strings.get("sync_now_drive", languageState), fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                                }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(Strings.get("google_drive_backup", languageState), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             }
+                            Surface(
+                                color = MaterialTheme.colorScheme.tertiaryContainer,
+                                shape = MaterialTheme.shapes.small
+                            ) {
+                                Text(
+                                    text = "🚧 Work in Progress",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                            }
+                        }
+
+                        // Work in Progress Notice Box
+                        Surface(
+                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f),
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Construction,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.tertiary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = if (languageState == "tl")
+                                        "Ang Google Drive Cloud Sync ay kasalukuyang pino-proseeso. Gamitin muna ang Local File Backup sa ibaba para mag-save o mag-restore."
+                                    else
+                                        "Google Drive Cloud Sync is currently under development. Please use Local File Backup below to save and restore your store data.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Google Drive Cloud Sync is currently under development. Local File Backup is fully functional!")
+                                }
+                            },
+                            enabled = false,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Icon(Icons.Default.CloudOff, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Google Cloud Sync (Work in Progress)", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -1148,6 +1153,135 @@ fun SettingsScreen(
             
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+
+    if (showSyncConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!isSyncingProgress) showSyncConfirmDialog = false },
+            title = { Text(Strings.get("sync_confirm_title", languageState), fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = Strings.get("sync_confirm_desc", languageState),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    if (isSyncingProgress) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        isSyncingProgress = true
+                        scope.launch {
+                            val backupRes = GoogleDriveBackupManager.performCloudBackupResult(context)
+                            when (backupRes) {
+                                is com.tataskan.pos.util.CloudBackupResult.Success -> {
+                                    isSyncingProgress = false
+                                    showSyncConfirmDialog = false
+                                    viewModel.setLastDriveBackupTime(System.currentTimeMillis())
+                                    showSyncSuccessDialog = true
+                                }
+                                is com.tataskan.pos.util.CloudBackupResult.RequiresConsent -> {
+                                    isSyncingProgress = false
+                                    showSyncConfirmDialog = false
+                                    googleAuthConsentLauncher.launch(backupRes.consentIntent)
+                                }
+                                is com.tataskan.pos.util.CloudBackupResult.Failure -> {
+                                    isSyncingProgress = false
+                                    showSyncConfirmDialog = false
+                                    snackbarHostState.showSnackbar("Cloud Backup Failed: ${backupRes.message}")
+                                }
+                            }
+                        }
+                    },
+                    enabled = !isSyncingProgress
+                ) {
+                    Text(Strings.get("upload_cloud_backup_now", languageState), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                if (!isSyncingProgress) {
+                    TextButton(onClick = { showSyncConfirmDialog = false }) {
+                        Text(Strings.get("cancel", languageState))
+                    }
+                }
+            }
+        )
+    }
+
+    if (showSyncSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { showSyncSuccessDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF2E7D32),
+                    modifier = Modifier.size(48.dp)
+                )
+            },
+            title = { Text("Cloud Backup Complete!", fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    text = "Your store inventory, transaction logs, and settings have been backed up successfully to the 'TataskanPOS Backups' folder on your Google Drive.",
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showSyncSuccessDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("OK", fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+
+    if (showUnlinkConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showUnlinkConfirmDialog = false },
+            title = { Text(Strings.get("unlink_confirm_title", languageState), fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    text = Strings.get("unlink_confirm_desc", languageState),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showUnlinkConfirmDialog = false
+                        try {
+                            val client = GoogleDriveBackupManager.getSignInClient(context)
+                            client.signOut().addOnCompleteListener {
+                                viewModel.setGoogleDriveAccount(null)
+                                scope.launch { snackbarHostState.showSnackbar("Google Account unlinked.") }
+                            }
+                        } catch (e: Exception) {
+                            viewModel.setGoogleDriveAccount(null)
+                            scope.launch { snackbarHostState.showSnackbar("Google Account unlinked.") }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(Strings.get("unlink_google_drive", languageState), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUnlinkConfirmDialog = false }) {
+                    Text(Strings.get("cancel", languageState))
+                }
+            }
+        )
     }
 }
 
