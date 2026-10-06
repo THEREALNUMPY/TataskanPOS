@@ -153,11 +153,20 @@ fun ReceiptScreen(
                         
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 1.dp, color = Color.LightGray)
                         
-                        // Totals
-                        val subtotalBeforeTaxAndDisc = transaction!!.items.sumOf { it.priceAtSale * it.quantity }
-                        if (transaction!!.transaction.discountAmount > 0) {
-                            SummaryRow("Subtotal", subtotalBeforeTaxAndDisc, currencySymbol)
-                            SummaryRow("Discount (${transaction!!.transaction.promoName ?: "Promo"})", -transaction!!.transaction.discountAmount, currencySymbol, color = MaterialTheme.colorScheme.error)
+                        // Totals Breakdown
+                        val itemsSubtotal = transaction!!.items.sumOf { it.priceAtSale * it.quantity }
+                        val txDiscount = transaction!!.transaction.discountAmount
+                        val txTax = transaction!!.transaction.taxAmount
+
+                        if (txDiscount > 0 || txTax > 0) {
+                            SummaryRow("Subtotal", itemsSubtotal, currencySymbol)
+                            if (txDiscount > 0) {
+                                SummaryRow("Discount (${transaction!!.transaction.promoName ?: "Promo"})", -txDiscount, currencySymbol, color = MaterialTheme.colorScheme.error)
+                            }
+                            if (txTax > 0) {
+                                SummaryRow("Tax", txTax, currencySymbol)
+                            }
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), thickness = 0.5.dp, color = Color.LightGray)
                         }
                         
                         val payMethodLabel = if (transaction!!.transaction.paymentMethod == "DIGITAL") Strings.get("payment_digital", lang) else Strings.get("payment_cash", lang)

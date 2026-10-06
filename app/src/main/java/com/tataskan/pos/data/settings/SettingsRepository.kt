@@ -37,6 +37,8 @@ class SettingsRepository(private val context: Context) {
         val MAYA_QR_URI = stringPreferencesKey("maya_qr_uri")
         val GOOGLE_DRIVE_ACCOUNT = stringPreferencesKey("google_drive_account")
         val LAST_DRIVE_BACKUP_TIME = longPreferencesKey("last_drive_backup_time")
+        val LAST_LOCAL_BACKUP_TIME = longPreferencesKey("last_local_backup_time")
+        val IS_LOCAL_BACKUP_ENABLED = booleanPreferencesKey("is_local_backup_enabled")
         val BACKUP_FREQUENCY = stringPreferencesKey("backup_frequency")
     }
 
@@ -63,6 +65,8 @@ class SettingsRepository(private val context: Context) {
     val mayaQrUri: Flow<String?> = context.dataStore.data.map { it[Keys.MAYA_QR_URI] }
     val googleDriveAccount: Flow<String?> = context.dataStore.data.map { it[Keys.GOOGLE_DRIVE_ACCOUNT] }
     val lastDriveBackupTime: Flow<Long> = context.dataStore.data.map { it[Keys.LAST_DRIVE_BACKUP_TIME] ?: 0L }
+    val lastLocalBackupTime: Flow<Long> = context.dataStore.data.map { it[Keys.LAST_LOCAL_BACKUP_TIME] ?: 0L }
+    val isLocalBackupEnabled: Flow<Boolean> = context.dataStore.data.map { it[Keys.IS_LOCAL_BACKUP_ENABLED] ?: true }
     val backupFrequency: Flow<String> = context.dataStore.data.map { it[Keys.BACKUP_FREQUENCY] ?: "DAILY" }
 
     suspend fun updateCurrencySymbol(symbol: String) = context.dataStore.edit { it[Keys.CURRENCY_SYMBOL] = symbol }
@@ -81,6 +85,12 @@ class SettingsRepository(private val context: Context) {
     }
     suspend fun updateLastDriveBackupTime(timestamp: Long) = context.dataStore.edit {
         it[Keys.LAST_DRIVE_BACKUP_TIME] = timestamp
+    }
+    suspend fun updateLastLocalBackupTime(timestamp: Long) = context.dataStore.edit {
+        it[Keys.LAST_LOCAL_BACKUP_TIME] = timestamp
+    }
+    suspend fun updateIsLocalBackupEnabled(enabled: Boolean) = context.dataStore.edit {
+        it[Keys.IS_LOCAL_BACKUP_ENABLED] = enabled
     }
     
     suspend fun updateStoreName(name: String) = context.dataStore.edit { it[Keys.STORE_NAME] = name }

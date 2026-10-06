@@ -8,6 +8,7 @@ import com.tataskan.pos.data.local.entity.Product
 import com.tataskan.pos.data.local.entity.Transaction
 import com.tataskan.pos.data.local.entity.TransactionItem
 import com.tataskan.pos.data.repository.PosRepository
+import com.tataskan.pos.data.settings.SettingsRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -21,12 +22,19 @@ data class CartItem(
 class PosViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: PosRepository = (application as TataskanApplication).repository
+    private val settingsRepository = SettingsRepository(application)
 
     private val _cartItemsMap = MutableStateFlow<Map<Long, CartItem>>(emptyMap())
     private var lastRemovedItem: CartItem? = null
     
     private val _appliedPromo = MutableStateFlow<com.tataskan.pos.data.entity.Promo?>(null)
     val appliedPromo: StateFlow<com.tataskan.pos.data.entity.Promo?> = _appliedPromo.asStateFlow()
+
+    val taxPercentage: StateFlow<Float> = settingsRepository.taxPercentage.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = 0f
+    )
 
     val cartItems: StateFlow<List<CartItem>> = _cartItemsMap
         .map { it.values.toList() }
@@ -62,8 +70,16 @@ class PosViewModel(application: Application) : AndroidViewModel(application) {
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
-    val grandTotal: StateFlow<Double> = combine(subtotal, discountAmount) { sub, disc ->
+    val taxableAmount: StateFlow<Double> = combine(subtotal, discountAmount) { sub, disc ->
         (sub - disc).coerceAtLeast(0.0)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    val taxAmount: StateFlow<Double> = combine(taxableAmount, taxPercentage) { taxable, taxRate ->
+        taxable * (taxRate.toDouble() / 100.0)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    val grandTotal: StateFlow<Double> = combine(taxableAmount, taxAmount) { taxable, tax ->
+        taxable + tax
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     private val _error = MutableStateFlow<String?>(null)
@@ -183,17 +199,18 @@ class PosViewModel(application: Application) : AndroidViewModel(application) {
 
         val total = currentItems.sumOf { it.subtotal }
         val discount = discountAmount.value
+        val effectiveTaxRate = if (taxPercentage > 0f) taxPercentage else this.taxPercentage.value
+        val taxable = (total - discount).coerceAtLeast(0.0)
+        val calculatedTax = taxable * (effectiveTaxRate.toDouble() / 100.0)
+        val finalTotal = taxable + calculatedTax
         val promoName = _appliedPromo.value?.name
-        
-        val taxableAmount = (total - discount).coerceAtLeast(0.0)
-        val taxAmount = taxableAmount * (taxPercentage.toDouble() / 100.0)
         
         viewModelScope.launch {
             try {
                 val transaction = Transaction(
-                    total = taxableAmount + taxAmount,
+                    total = finalTotal,
                     amountReceived = amountReceived,
-                    taxAmount = taxAmount,
+                    taxAmount = calculatedTax,
                     discountAmount = discount,
                     promoName = promoName,
                     paymentMethod = paymentMethod

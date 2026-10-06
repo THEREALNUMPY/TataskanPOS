@@ -14,8 +14,8 @@ android {
         applicationId = "com.tataskan.pos"
         minSdk = 23
         targetSdk = 36
-        versionCode = 11
-        versionName = "2.4.2"
+        versionCode = 12
+        versionName = "2.4.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

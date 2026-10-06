@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -107,7 +108,7 @@ fun ReportingScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 96.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item {
@@ -145,7 +146,7 @@ fun ReportingScreen(
                             containerColor = MaterialTheme.colorScheme.surface
                         )
                         SummaryCard(
-                            modifier = Modifier.weight(1.2f),
+                            modifier = Modifier.weight(1f),
                             title = Strings.get("this_month", lang),
                             revenue = uiState.monthly.revenue,
                             count = uiState.monthly.transactionCount,
@@ -168,7 +169,7 @@ fun ReportingScreen(
                         salesData = uiState.weeklyTrends,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp)
+                            .height(210.dp)
                     )
                 }
 
@@ -191,7 +192,8 @@ fun ReportingScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(vertical = 4.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(product.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                                         Text(
@@ -303,12 +305,17 @@ fun SalesBarChart(
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         shape = RoundedCornerShape(20.dp)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
             // Chart Area with Y-Axis Gridlines and Scaled Bars
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
+                    .weight(1f)
             ) {
                 // Background Y-Axis Labels and Gridlines
                 Column(
@@ -323,6 +330,7 @@ fun SalesBarChart(
                             Text(
                                 text = if (valLabel >= 1000) "${(valLabel/1000).toInt()}k" else valLabel.toInt().toString(),
                                 style = MaterialTheme.typography.labelSmall,
+                                fontSize = 9.sp,
                                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
                                 modifier = Modifier.width(28.dp)
                             )
@@ -339,7 +347,7 @@ fun SalesBarChart(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(start = 32.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.Bottom
                 ) {
                     salesData.forEach { data ->
@@ -357,9 +365,10 @@ fun SalesBarChart(
                                 Text(
                                     text = if (data.revenue >= 1000) "${(data.revenue/1000).toInt()}k" else data.revenue.toInt().toString(),
                                     style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                                    fontSize = 8.sp,
-                                    color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 9.sp,
+                                    color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                    maxLines = 1
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                             }
@@ -376,7 +385,7 @@ fun SalesBarChart(
                                         .fillMaxHeight(barHeightFactor)
                                         .background(
                                             color = if (isToday) MaterialTheme.colorScheme.primary 
-                                                    else if (barHeightFactor > 0.04f) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                                                    else if (barHeightFactor > 0.04f) MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
                                                     else MaterialTheme.colorScheme.outlineVariant,
                                             shape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)
                                         )
@@ -387,14 +396,14 @@ fun SalesBarChart(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // X-Axis Day Labels Row neatly positioned below the chart box
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 32.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 salesData.forEach { data ->
@@ -406,9 +415,11 @@ fun SalesBarChart(
                         Text(
                             text = data.date,
                             style = MaterialTheme.typography.labelSmall,
-                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 11.sp,
                             color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }
@@ -436,39 +447,26 @@ fun SummaryCard(
             containerColor = containerColor,
             contentColor = MaterialTheme.colorScheme.onSurface
         ),
-        shape = RoundedCornerShape(20.dp)
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(
-                text = title.uppercase(), 
-                style = MaterialTheme.typography.labelSmall, 
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-            )
-            
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = formattedAmount,
-                    style = when {
-                        revenue >= 100_000 -> MaterialTheme.typography.titleMedium
-                        revenue >= 10_000 -> MaterialTheme.typography.headlineSmall
-                        else -> MaterialTheme.typography.headlineMedium
-                    },
-                    fontWeight = FontWeight.ExtraBold,
-                    color = if (isZero) MaterialTheme.colorScheme.outline.copy(alpha = 0.4f) else MaterialTheme.colorScheme.primary,
-                    maxLines = 2,
-                    softWrap = true,
-                    modifier = Modifier.weight(1f, fill = false)
+                    text = title.uppercase(), 
+                    style = MaterialTheme.typography.labelSmall, 
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 0.5.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    maxLines = 1
                 )
                 if (!isZero) {
-                    Spacer(modifier = Modifier.width(4.dp))
                     Box(
                         modifier = Modifier
                             .background(Color(0xFFE8F5E9), CircleShape)
@@ -485,10 +483,25 @@ fun SummaryCard(
             }
 
             Text(
+                text = formattedAmount,
+                style = when {
+                    formattedAmount.length > 10 -> MaterialTheme.typography.titleMedium
+                    formattedAmount.length > 7 -> MaterialTheme.typography.titleLarge
+                    else -> MaterialTheme.typography.headlineSmall
+                },
+                fontWeight = FontWeight.ExtraBold,
+                color = if (isZero) MaterialTheme.colorScheme.outline.copy(alpha = 0.4f) else MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Text(
                 text = "$count ${Strings.get("transactions_count", lang)}", 
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                maxLines = 1
             )
         }
     }

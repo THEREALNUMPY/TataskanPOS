@@ -227,6 +227,8 @@ fun SettingsScreen(
     val mayaQrUri by viewModel.mayaQrUri.collectAsState()
     val googleDriveAccount by viewModel.googleDriveAccount.collectAsState()
     val lastDriveBackupTime by viewModel.lastDriveBackupTime.collectAsState()
+    val lastLocalBackupTime by viewModel.lastLocalBackupTime.collectAsState()
+    val isLocalBackupEnabled by viewModel.isLocalBackupEnabled.collectAsState()
     val backupFrequency by viewModel.backupFrequency.collectAsState()
 
     var activeDownloadFile by remember { mutableStateOf<File?>(null) }
@@ -901,77 +903,102 @@ fun SettingsScreen(
                     }
                 }
 
-                // Google Drive Auto-Backup Card (Work in Progress)
+                // Automated Local Backup & Retention Card
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isLocalBackupEnabled) 
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ),
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(Strings.get("google_drive_backup", languageState), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            }
-                            Surface(
-                                color = MaterialTheme.colorScheme.tertiaryContainer,
-                                shape = MaterialTheme.shapes.small
-                            ) {
-                                Text(
-                                    text = "🚧 Work in Progress",
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
-                            }
-                        }
-
-                        // Work in Progress Notice Box
-                        Surface(
-                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f),
-                            shape = MaterialTheme.shapes.medium,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
                             Row(
-                                modifier = Modifier.padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
                             ) {
                                 Icon(
-                                    Icons.Default.Construction,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.tertiary,
-                                    modifier = Modifier.size(20.dp)
+                                    Icons.Default.CloudDone, 
+                                    contentDescription = null, 
+                                    tint = if (isLocalBackupEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                                 )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(
-                                    text = if (languageState == "tl")
-                                        "Ang Google Drive Cloud Sync ay kasalukuyang pino-proseeso. Gamitin muna ang Local File Backup sa ibaba para mag-save o mag-restore."
-                                    else
-                                        "Google Drive Cloud Sync is currently under development. Please use Local File Backup below to save and restore your store data.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text("Automated Local Backup", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    Surface(
+                                        color = if (isLocalBackupEnabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                                        shape = MaterialTheme.shapes.small,
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = if (isLocalBackupEnabled) "🟢 Active" else "🔴 Disabled",
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isLocalBackupEnabled) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
                             }
+
+                            Switch(
+                                checked = isLocalBackupEnabled,
+                                onCheckedChange = { enabled ->
+                                    viewModel.setIsLocalBackupEnabled(enabled)
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(if (enabled) "Automated Local Backup enabled." else "Automated Local Backup disabled.")
+                                    }
+                                }
+                            )
                         }
 
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Google Drive Cloud Sync is currently under development. Local File Backup is fully functional!")
+                        Text(
+                            text = if (isLocalBackupEnabled) 
+                                "Automatic background ZIP archives of your store database, preferences, and product images. Keeps the 7 most recent backups to save storage."
+                            else 
+                                "Automated local auto-backup is disabled. You can still generate manual local backups anytime below.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        if (isLocalBackupEnabled && lastLocalBackupTime > 0L) {
+                            val lastBackupDate = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()).format(Date(lastLocalBackupTime))
+                            Text("Last Automated Backup: $lastBackupDate", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        }
+
+                        if (isLocalBackupEnabled) {
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("Auto-Backup Frequency", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    listOf(
+                                        "DAILY" to Strings.get("freq_daily", languageState),
+                                        "WEEKLY" to Strings.get("freq_weekly", languageState),
+                                        "MONTHLY" to Strings.get("freq_monthly", languageState)
+                                    ).forEach { (freqKey, freqLabel) ->
+                                        FilterChip(
+                                            selected = backupFrequency.equals(freqKey, ignoreCase = true),
+                                            onClick = {
+                                                viewModel.setBackupFrequency(freqKey)
+                                                scope.launch {
+                                                    snackbarHostState.showSnackbar("Auto-Backup Frequency: $freqLabel")
+                                                }
+                                            },
+                                            label = { Text(freqLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
                                 }
-                            },
-                            enabled = false,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium
-                        ) {
-                            Icon(Icons.Default.CloudOff, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Google Cloud Sync (Work in Progress)", fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }

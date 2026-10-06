@@ -32,6 +32,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     init {
         refreshBackups()
+        com.tataskan.pos.util.LocalBackupManager.scheduleAutoBackup(application)
         viewModelScope.launch {
             try {
                 // Pre-load critical UI settings without unnecessary timeout that might block start
@@ -115,13 +116,32 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val lastDriveBackupTime: StateFlow<Long> = repository.lastDriveBackupTime.stateIn(
         scope = viewModelScope, started = SharingStarted.WhileSubscribed(5000), initialValue = 0L
     )
+    val lastLocalBackupTime: StateFlow<Long> = repository.lastLocalBackupTime.stateIn(
+        scope = viewModelScope, started = SharingStarted.WhileSubscribed(5000), initialValue = 0L
+    )
+    val isLocalBackupEnabled: StateFlow<Boolean> = repository.isLocalBackupEnabled.stateIn(
+        scope = viewModelScope, started = SharingStarted.WhileSubscribed(5000), initialValue = true
+    )
     val backupFrequency: StateFlow<String> = repository.backupFrequency.stateIn(
         scope = viewModelScope, started = SharingStarted.WhileSubscribed(5000), initialValue = "DAILY"
     )
 
     fun setCurrencySymbol(symbol: String) = viewModelScope.launch { repository.updateCurrencySymbol(symbol.trim()) }
     fun setShowNameOnLabel(show: Boolean) = viewModelScope.launch { repository.updateShowNameOnLabel(show) }
-    fun setBackupFrequency(frequency: String) = viewModelScope.launch { repository.updateBackupFrequency(frequency) }
+    fun setBackupFrequency(frequency: String) = viewModelScope.launch { 
+        repository.updateBackupFrequency(frequency)
+        if (isLocalBackupEnabled.value) {
+            com.tataskan.pos.util.LocalBackupManager.scheduleAutoBackup(app, frequency)
+        }
+    }
+    fun setIsLocalBackupEnabled(enabled: Boolean) = viewModelScope.launch {
+        repository.updateIsLocalBackupEnabled(enabled)
+        if (enabled) {
+            com.tataskan.pos.util.LocalBackupManager.scheduleAutoBackup(app, backupFrequency.value)
+        } else {
+            com.tataskan.pos.util.LocalBackupManager.cancelAutoBackup(app)
+        }
+    }
     fun setShowPriceOnLabel(show: Boolean) = viewModelScope.launch { repository.updateShowPriceOnLabel(show) }
     
     fun setStoreName(name: String) = viewModelScope.launch { repository.updateStoreName(name.trim()) }
@@ -130,6 +150,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setMayaQrUri(uri: String?) = viewModelScope.launch { repository.updateMayaQrUri(uri) }
     fun setGoogleDriveAccount(account: String?) = viewModelScope.launch { repository.updateGoogleDriveAccount(account) }
     fun setLastDriveBackupTime(timestamp: Long) = viewModelScope.launch { repository.updateLastDriveBackupTime(timestamp) }
+    fun setLastLocalBackupTime(timestamp: Long) = viewModelScope.launch { repository.updateLastLocalBackupTime(timestamp) }
     fun setStoreAddress(address: String) = viewModelScope.launch { repository.updateStoreAddress(address.trim()) }
     fun setPhoneNumber(phone: String) = viewModelScope.launch { repository.updatePhoneNumber(phone.trim()) }
     fun setReceiptFooter(footer: String) = viewModelScope.launch { repository.updateReceiptFooter(footer.trim()) }
@@ -168,7 +189,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 app.database.promoDao().deleteAll()
                 app.database.stockAdjustmentDao().deleteAll()
 
-                // 1. Seed Professional Shop Profile
+                // 1. Seed Professional Shop Profile & Sample QR Codes
                 repository.updateStoreName("Small Mall Mart")
                 repository.updateStoreAddress("G/F City Mall, Central District")
                 repository.updatePhoneNumber("02-123-4567")
@@ -177,117 +198,171 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 repository.updateTutorialComplete(false)
                 repository.updateReceiptFooter("Thank you for shopping at Small Mall Mart!")
                 repository.updateStoreLogoUri("https://images.unsplash.com/photo-1542838132-92c53300491e?w=400")
-                
-                // 2. Seed Diverse Product Catalog (30+ products for pagination testing)
+                repository.updateGcashQrUri("https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=GCashMerchantSmallMallMart")
+                repository.updateMayaQrUri("https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=MayaMerchantSmallMallMart")
+
+                // 2. Seed Diverse Product Catalog (Including Low Stock & Out of Stock items)
                 val demoProducts = listOf(
                     com.tataskan.pos.data.local.entity.Product(name = "Jasmine Rice 5kg", price = 285.0, cost = 210.0, category = "Grocery", stock = 50, barcode = "G001", imageUri = "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400"),
                     com.tataskan.pos.data.local.entity.Product(name = "Whole Wheat Bread", price = 65.0, cost = 42.0, category = "Bakery", stock = 12, barcode = "B001", imageUri = "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400"),
                     com.tataskan.pos.data.local.entity.Product(name = "Fresh Eggs (12pcs)", price = 115.0, cost = 85.0, category = "Dairy", stock = 20, barcode = "D001", imageUri = "https://images.unsplash.com/photo-1518562180175-34a163b1a9a6?w=400"),
                     com.tataskan.pos.data.local.entity.Product(name = "Fresh Milk 1L", price = 95.0, cost = 75.0, category = "Dairy", stock = 15, barcode = "D002", imageUri = "https://images.unsplash.com/photo-1550583724-125581cc2532?w=400"),
-                    com.tataskan.pos.data.local.entity.Product(name = "Wired Headphones", price = 599.0, cost = 380.0, category = "Electronics", stock = 5, barcode = "E001", imageUri = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400"),
+                    com.tataskan.pos.data.local.entity.Product(name = "Wired Headphones", price = 599.0, cost = 380.0, category = "Electronics", stock = 3, barcode = "E001", imageUri = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400"), // Low stock
                     com.tataskan.pos.data.local.entity.Product(name = "Wireless Mouse", price = 850.0, cost = 550.0, category = "Electronics", stock = 8, barcode = "E002", imageUri = "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400"),
-                    com.tataskan.pos.data.local.entity.Product(name = "Mini Bluetooth Speaker", price = 1200.0, cost = 850.0, category = "Electronics", stock = 4, barcode = "E004", imageUri = "https://images.unsplash.com/photo-1608156639585-34054e815958?w=400"),
+                    com.tataskan.pos.data.local.entity.Product(name = "Mini Bluetooth Speaker", price = 1200.0, cost = 850.0, category = "Electronics", stock = 0, barcode = "E004", imageUri = "https://images.unsplash.com/photo-1608156639585-34054e815958?w=400"), // Out of stock
                     com.tataskan.pos.data.local.entity.Product(name = "Coca-Cola 1.5L", price = 68.0, cost = 52.0, category = "Beverages", stock = 48, barcode = "V001", imageUri = "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400"),
                     com.tataskan.pos.data.local.entity.Product(name = "Potato Chips Lg", price = 75.0, cost = 55.0, category = "Snacks", stock = 30, barcode = "S001", imageUri = "https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=400"),
-                    com.tataskan.pos.data.local.entity.Product(name = "Cotton T-Shirt M", price = 299.0, cost = 180.0, category = "Fashion", stock = 10, barcode = "F001", imageUri = "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=400")
+                    com.tataskan.pos.data.local.entity.Product(name = "Cotton T-Shirt M", price = 299.0, cost = 180.0, category = "Fashion", stock = 2, barcode = "F001", imageUri = "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=400") // Low stock
                 )
                 
                 val repeatedItems = (1..20).map { i ->
                     com.tataskan.pos.data.local.entity.Product(
                         name = "Stock Item #$i", price = 10.0 + i, cost = 5.0 + i, 
                         category = if (i % 2 == 0) "General" else "Misc", 
-                        stock = 100, barcode = "STOCK_$i", imageUri = null
+                        stock = if (i == 5) 0 else if (i == 12) 3 else 100, 
+                        barcode = "STOCK_$i", imageUri = null
                     )
                 }
                 
                 val allProducts = demoProducts + repeatedItems
-                allProducts.forEach { app.repository.addProduct(it) }
+                allProducts.forEach { product ->
+                    app.database.productDao().insertProduct(product)
+                }
 
+                val allInsertedProducts = app.database.productDao().getAllProducts().first()
+                val insertedIds = allInsertedProducts.map { it.id }
+
+                // 3. Seed Categories
                 allProducts.map { it.category }.distinct().forEach { catName ->
                     if (catName.isNotBlank() && app.repository.getCategoryByName(catName) == null) {
                         app.repository.addCategory(com.tataskan.pos.data.entity.Category(name = catName))
                     }
                 }
+
+                // 4. Seed Promos & Vouchers
+                val promos = listOf(
+                    com.tataskan.pos.data.entity.Promo(
+                        name = "Storewide 10% OFF",
+                        code = "PROMO10",
+                        type = com.tataskan.pos.data.entity.PromoType.PERCENTAGE_TOTAL,
+                        value = 10.0,
+                        isActive = true
+                    ),
+                    com.tataskan.pos.data.entity.Promo(
+                        name = "₱50 OFF Minimum Spend",
+                        code = "PROMO50",
+                        type = com.tataskan.pos.data.entity.PromoType.FIXED_TOTAL,
+                        value = 50.0,
+                        isActive = true
+                    ),
+                    com.tataskan.pos.data.entity.Promo(
+                        name = "20% OFF Electronics",
+                        code = "TECH20",
+                        type = com.tataskan.pos.data.entity.PromoType.PERCENTAGE_PRODUCT,
+                        value = 20.0,
+                        productId = insertedIds.getOrNull(4),
+                        isActive = true
+                    )
+                )
+                promos.forEach { app.database.promoDao().insertPromo(it) }
+
+                // 5. Seed Stock Adjustments Timeline
+                val adjustments = listOf(
+                    com.tataskan.pos.data.entity.StockAdjustment(
+                        productId = insertedIds.firstOrNull() ?: 1L,
+                        productName = "Jasmine Rice 5kg",
+                        quantityChange = 50,
+                        reason = com.tataskan.pos.data.entity.AdjustmentReason.RESTOCKED,
+                        notes = "Initial delivery restock",
+                        timestamp = System.currentTimeMillis() - 86400000 * 3
+                    ),
+                    com.tataskan.pos.data.entity.StockAdjustment(
+                        productId = insertedIds.getOrNull(4) ?: 5L,
+                        productName = "Wired Headphones",
+                        quantityChange = -2,
+                        reason = com.tataskan.pos.data.entity.AdjustmentReason.DAMAGED,
+                        notes = "Box damaged during transport",
+                        timestamp = System.currentTimeMillis() - 86400000 * 2
+                    )
+                )
+                adjustments.forEach { app.database.stockAdjustmentDao().insertAdjustment(it) }
                 
+                // 6. Seed 30-Day Transaction History for Sales Analytics & Charts
                 val cal = Calendar.getInstance()
-                // Day 0: Today
-                cal.timeInMillis = System.currentTimeMillis()
-                seedTransaction(app.repository, 850.0, 1000.0, cal.timeInMillis - 3600000, listOf(1L to 2, 8L to 4), "CASH")
-                seedTransaction(app.repository, 1250.0, 1250.0, cal.timeInMillis - 1800000, listOf(5L to 1, 6L to 1), "DIGITAL")
+                val now = System.currentTimeMillis()
 
-                // Day 1: Yesterday (Weekend Peak)
-                cal.timeInMillis = System.currentTimeMillis()
-                cal.add(Calendar.DAY_OF_YEAR, -1)
-                seedTransaction(app.repository, 1800.0, 2000.0, cal.timeInMillis, listOf(1L to 3, 7L to 1), "CASH")
-                seedTransaction(app.repository, 2400.0, 2400.0, cal.timeInMillis + 7200000, listOf(5L to 2, 6L to 1, 8L to 5), "DIGITAL")
-                seedTransaction(app.repository, 1600.0, 2000.0, cal.timeInMillis + 14400000, listOf(3L to 4, 4L to 2), "CASH")
+                // Generate sales entries across past 30 days
+                for (dayOffset in 0..29) {
+                    cal.timeInMillis = now - (dayOffset * 86400000L)
+                    val baseTime = cal.timeInMillis
 
-                // Day 2: 2 Days Ago (Peak)
-                cal.timeInMillis = System.currentTimeMillis()
-                cal.add(Calendar.DAY_OF_YEAR, -2)
-                seedTransaction(app.repository, 2100.0, 2100.0, cal.timeInMillis, listOf(7L to 1, 5L to 1), "DIGITAL")
-                seedTransaction(app.repository, 1500.0, 2000.0, cal.timeInMillis + 3600000, listOf(1L to 4, 2L to 2), "CASH")
-                seedTransaction(app.repository, 2240.0, 2500.0, cal.timeInMillis + 10800000, listOf(6L to 2, 8L to 8), "CASH")
+                    // Vary transactions count based on day
+                    val txCount = when (dayOffset % 7) {
+                        0, 1 -> 3 // Weekend peak
+                        3, 4 -> 2 // Mid-week
+                        else -> 1 // Regular day
+                    }
 
-                // Day 3: 3 Days Ago (Quiet Day)
-                cal.timeInMillis = System.currentTimeMillis()
-                cal.add(Calendar.DAY_OF_YEAR, -3)
-                seedTransaction(app.repository, 680.0, 700.0, cal.timeInMillis, listOf(8L to 10), "CASH")
+                    for (t in 0 until txCount) {
+                        val time = baseTime + (t * 3600000L) + (1000 * 60 * 15)
+                        val payMethod = if ((dayOffset + t) % 2 == 0) "CASH" else "DIGITAL"
+                        
+                        // Select products
+                        val p1Id = insertedIds.getOrElse(t % insertedIds.size) { 1L }
+                        val p2Id = insertedIds.getOrElse((t + 3) % insertedIds.size) { 2L }
 
-                // Day 4: 4 Days Ago (Mid-Week Peak)
-                cal.timeInMillis = System.currentTimeMillis()
-                cal.add(Calendar.DAY_OF_YEAR, -4)
-                seedTransaction(app.repository, 1400.0, 1500.0, cal.timeInMillis, listOf(3L to 5, 4L to 3), "CASH")
-                seedTransaction(app.repository, 1850.0, 1850.0, cal.timeInMillis + 7200000, listOf(6L to 1, 7L to 1), "DIGITAL")
+                        val p1 = app.repository.getProductById(p1Id)
+                        val p2 = app.repository.getProductById(p2Id)
 
-                // Day 5: 5 Days Ago
-                cal.timeInMillis = System.currentTimeMillis()
-                cal.add(Calendar.DAY_OF_YEAR, -5)
-                seedTransaction(app.repository, 1100.0, 1200.0, cal.timeInMillis, listOf(1L to 2, 2L to 4, 8L to 2), "CASH")
+                        val items = mutableListOf<com.tataskan.pos.data.local.entity.TransactionItem>()
+                        var subtotal = 0.0
 
-                // Day 6: 6 Days Ago
-                cal.timeInMillis = System.currentTimeMillis()
-                cal.add(Calendar.DAY_OF_YEAR, -6)
-                seedTransaction(app.repository, 1250.0, 1250.0, cal.timeInMillis, listOf(5L to 1, 2L to 1), "DIGITAL")
+                        if (p1 != null) {
+                            items.add(
+                                com.tataskan.pos.data.local.entity.TransactionItem(
+                                    transactionId = 0, productId = p1.id, productName = p1.name,
+                                    quantity = (1..3).random(), priceAtSale = p1.price, costAtSale = p1.cost
+                                )
+                            )
+                            subtotal += items.last().priceAtSale * items.last().quantity
+                        }
+                        if (p2 != null) {
+                            items.add(
+                                com.tataskan.pos.data.local.entity.TransactionItem(
+                                    transactionId = 0, productId = p2.id, productName = p2.name,
+                                    quantity = (1..2).random(), priceAtSale = p2.price, costAtSale = p2.cost
+                                )
+                            )
+                            subtotal += items.last().priceAtSale * items.last().quantity
+                        }
+
+                        if (items.isNotEmpty()) {
+                            val tax = subtotal * 0.12
+                            val grandTotal = subtotal + tax
+                            app.repository.completeTransaction(
+                                Transaction(
+                                    total = grandTotal,
+                                    amountReceived = if (payMethod == "DIGITAL") grandTotal else (grandTotal + 50.0),
+                                    taxAmount = tax,
+                                    discountAmount = 0.0,
+                                    paymentMethod = payMethod,
+                                    timestamp = time
+                                ),
+                                items
+                            )
+                        }
+                    }
+                }
             }
             onComplete()
         }
     }
 
-    private suspend fun seedTransaction(
-        repo: PosRepository,
-        total: Double,
-        received: Double,
-        time: Long,
-        productIds: List<Pair<Long, Int>>,
-        paymentMethod: String = "CASH"
-    ) {
-        val items = productIds.mapNotNull { (id, qty) ->
-            repo.getProductById(id)?.let { p ->
-                com.tataskan.pos.data.local.entity.TransactionItem(
-                    transactionId = 0, productId = p.id, productName = p.name,
-                    quantity = qty, priceAtSale = p.price, costAtSale = p.cost
-                )
-            }
-        }
-        if (items.isNotEmpty()) {
-            repo.completeTransaction(
-                Transaction(
-                    total = total,
-                    amountReceived = received,
-                    taxAmount = total * 0.12,
-                    paymentMethod = paymentMethod,
-                    timestamp = time
-                ),
-                items
-            )
-        }
-    }
-
     fun generateBackup(onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
-            val file = backupRepository.exportToInternalStorage()
+            val file = backupRepository.performLocalAutoBackup()
             if (file != null) {
+                repository.updateLastLocalBackupTime(System.currentTimeMillis())
                 refreshBackups()
                 onResult(true)
             } else {

@@ -88,6 +88,31 @@ class BackupRepository(private val context: Context, private val database: AppDa
         return backupDir.listFiles()?.toList()?.sortedByDescending { it.lastModified() } ?: emptyList()
     }
 
+    fun cleanupOldBackups(maxKeepCount: Int = 7) {
+        try {
+            val backups = getInternalBackups()
+            if (backups.size > maxKeepCount) {
+                backups.drop(maxKeepCount).forEach { oldFile ->
+                    try {
+                        if (oldFile.exists()) oldFile.delete()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    suspend fun performLocalAutoBackup(): File? = withContext(Dispatchers.IO) {
+        val backupFile = exportToInternalStorage()
+        if (backupFile != null && backupFile.exists()) {
+            cleanupOldBackups(7)
+        }
+        backupFile
+    }
+
     fun deleteInternalBackup(file: File): Boolean {
         return if (file.exists()) file.delete() else false
     }

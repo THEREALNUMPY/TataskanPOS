@@ -119,6 +119,8 @@ fun PosCartContent(
     val cartItems by viewModel.cartItems.collectAsState()
     val subtotal by viewModel.subtotal.collectAsState()
     val discountAmount by viewModel.discountAmount.collectAsState()
+    val taxAmount by viewModel.taxAmount.collectAsState()
+    val taxPercentage by viewModel.taxPercentage.collectAsState()
     val grandTotal by viewModel.grandTotal.collectAsState()
     val appliedPromo by viewModel.appliedPromo.collectAsState()
 
@@ -194,7 +196,7 @@ fun PosCartContent(
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                if (appliedPromo != null) {
+                if (appliedPromo != null || taxAmount > 0) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -202,12 +204,23 @@ fun PosCartContent(
                         Text("Subtotal", style = MaterialTheme.typography.bodyMedium)
                         Text(CurrencyUtils.formatCurrency(subtotal, currencySymbol), style = MaterialTheme.typography.bodyMedium)
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Discount (${appliedPromo?.name})", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
-                        Text("- ${CurrencyUtils.formatCurrency(discountAmount, currencySymbol)}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                    if (appliedPromo != null && discountAmount > 0) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Discount (${appliedPromo?.name})", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                            Text("- ${CurrencyUtils.formatCurrency(discountAmount, currencySymbol)}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                    if (taxAmount > 0) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Tax (${String.format(Locale.US, "%.0f", taxPercentage)}%)", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("+ ${CurrencyUtils.formatCurrency(taxAmount, currencySymbol)}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 }

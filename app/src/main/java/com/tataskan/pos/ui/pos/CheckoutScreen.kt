@@ -7,6 +7,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Money
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material3.*
@@ -37,7 +38,12 @@ fun CheckoutScreen(
     onSaleCompleted: (Long) -> Unit,
     tutorialViewModel: TutorialViewModel
 ) {
+    val subtotal by viewModel.subtotal.collectAsState()
+    val discountAmount by viewModel.discountAmount.collectAsState()
+    val taxAmount by viewModel.taxAmount.collectAsState()
+    val effectiveTaxRate by viewModel.taxPercentage.collectAsState()
     val grandTotal by viewModel.grandTotal.collectAsState()
+
     val hasDigitalQr = gcashQrUri != null || mayaQrUri != null
     var selectedPaymentMethod by remember { mutableStateOf("CASH") } // "CASH" or "DIGITAL"
     var amountReceivedText by remember(grandTotal) {
@@ -67,7 +73,7 @@ fun CheckoutScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Grand Total Card
+            // Grand Total Card (Displays total amount including taxes)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -76,20 +82,53 @@ fun CheckoutScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(Strings.get("grand_total", lang), style = MaterialTheme.typography.titleMedium)
+                    Text(Strings.get("grand_total", lang), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
                     Text(
                         text = CurrencyUtils.formatCurrency(grandTotal, currencySymbol),
                         style = MaterialTheme.typography.displayMedium,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
+
+                    if (taxAmount > 0 || discountAmount > 0) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Subtotal", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
+                            Text(CurrencyUtils.formatCurrency(subtotal, currencySymbol), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        }
+                        if (discountAmount > 0) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Discount", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
+                                Text("- ${CurrencyUtils.formatCurrency(discountAmount, currencySymbol)}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            }
+                        }
+                        if (taxAmount > 0) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Tax (${String.format(Locale.US, "%.0f", effectiveTaxRate)}%)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
+                                Text("+ ${CurrencyUtils.formatCurrency(taxAmount, currencySymbol)}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            }
+                        }
+                    }
                 }
             }
 
-            // Payment Method Selector
+            // Payment Method Selector Buttons
             Text(
                 text = Strings.get("payment_method", lang),
                 style = MaterialTheme.typography.titleMedium,
@@ -102,45 +141,119 @@ fun CheckoutScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                FilterChip(
-                    selected = selectedPaymentMethod == "CASH",
+                // Cash Option Card
+                OutlinedCard(
                     onClick = {
                         selectedPaymentMethod = "CASH"
                         if (amountReceivedText.isBlank()) {
                             amountReceivedText = String.format(Locale.US, "%.2f", grandTotal)
                         }
                     },
-                    label = { Text(Strings.get("payment_cash", lang), fontWeight = FontWeight.Bold) },
-                    leadingIcon = { Icon(Icons.Default.Money, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                    modifier = if (hasDigitalQr) Modifier.weight(1f).height(48.dp) else Modifier.fillMaxWidth().height(48.dp),
-                    shape = MaterialTheme.shapes.medium
-                )
-
-                if (hasDigitalQr) {
-                    FilterChip(
-                        selected = selectedPaymentMethod == "DIGITAL",
-                        onClick = { 
-                            selectedPaymentMethod = "DIGITAL"
-                            amountReceivedText = String.format(Locale.US, "%.2f", grandTotal)
-                            showQrModal = true
-                        },
-                        label = { Text("Digital (QR)", fontWeight = FontWeight.Bold) },
-                        leadingIcon = { Icon(Icons.Default.QrCode2, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                        modifier = Modifier.weight(1f).height(48.dp),
-                        shape = MaterialTheme.shapes.medium
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    border = androidx.compose.foundation.BorderStroke(
+                        width = if (selectedPaymentMethod == "CASH") 2.dp else 1.dp,
+                        color = if (selectedPaymentMethod == "CASH") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                    ),
+                    colors = CardDefaults.outlinedCardColors(
+                        containerColor = if (selectedPaymentMethod == "CASH") MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface
                     )
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Money,
+                            contentDescription = null,
+                            tint = if (selectedPaymentMethod == "CASH") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = Strings.get("payment_cash", lang),
+                            fontWeight = FontWeight.Bold,
+                            color = if (selectedPaymentMethod == "CASH") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+
+                // Digital Option Card
+                OutlinedCard(
+                    onClick = {
+                        selectedPaymentMethod = "DIGITAL"
+                        amountReceivedText = String.format(Locale.US, "%.2f", grandTotal)
+                        if (hasDigitalQr) {
+                            showQrModal = true
+                        }
+                    },
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    border = androidx.compose.foundation.BorderStroke(
+                        width = if (selectedPaymentMethod == "DIGITAL") 2.dp else 1.dp,
+                        color = if (selectedPaymentMethod == "DIGITAL") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                    ),
+                    colors = CardDefaults.outlinedCardColors(
+                        containerColor = if (selectedPaymentMethod == "DIGITAL") MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.QrCode2,
+                            contentDescription = null,
+                            tint = if (selectedPaymentMethod == "DIGITAL") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Digital (QR)",
+                            fontWeight = FontWeight.Bold,
+                            color = if (selectedPaymentMethod == "DIGITAL") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
 
-            if (selectedPaymentMethod == "DIGITAL" && hasDigitalQr) {
-                OutlinedButton(
-                    onClick = { showQrModal = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    Icon(Icons.Default.QrCode2, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(Strings.get("show_merchant_qr", lang), fontWeight = FontWeight.Bold)
+            if (selectedPaymentMethod == "DIGITAL") {
+                if (hasDigitalQr) {
+                    OutlinedButton(
+                        onClick = { showQrModal = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Icon(Icons.Default.QrCode2, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(Strings.get("show_merchant_qr", lang), fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Digital payment selected. (Tip: You can upload your store's GCash or Maya QR code in Settings for quick scanning)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
                 }
             }
 
@@ -234,6 +347,8 @@ fun CheckoutScreen(
                     fontWeight = FontWeight.Bold
                 )
             }
+
+            Spacer(modifier = Modifier.height(96.dp))
         }
 
         // Tabbed Merchant GCash / Maya QR Modal Dialog
@@ -319,7 +434,16 @@ fun CheckoutScreen(
                 text = { 
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("${Strings.get("payment_method", lang)}: ${if (selectedPaymentMethod == "DIGITAL") "Digital (QR)" else Strings.get("payment_cash", lang)}", fontWeight = FontWeight.SemiBold)
-                        Text("${Strings.get("total", lang)}: ${CurrencyUtils.formatCurrency(grandTotal, currencySymbol)}")
+                        if (taxAmount > 0 || discountAmount > 0) {
+                            Text("Subtotal: ${CurrencyUtils.formatCurrency(subtotal, currencySymbol)}")
+                            if (discountAmount > 0) {
+                                Text("Discount: - ${CurrencyUtils.formatCurrency(discountAmount, currencySymbol)}", color = MaterialTheme.colorScheme.error)
+                            }
+                            if (taxAmount > 0) {
+                                Text("Tax (${String.format(Locale.US, "%.0f", effectiveTaxRate)}%): + ${CurrencyUtils.formatCurrency(taxAmount, currencySymbol)}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        Text("${Strings.get("total", lang)}: ${CurrencyUtils.formatCurrency(grandTotal, currencySymbol)}", fontWeight = FontWeight.Bold)
                         Text("${Strings.get("received", lang)}: ${CurrencyUtils.formatCurrency(amountReceived, currencySymbol)}")
                         Text("${Strings.get("change", lang)}: ${CurrencyUtils.formatCurrency(change, currencySymbol)}", fontWeight = FontWeight.Bold)
                     }

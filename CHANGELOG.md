@@ -4,7 +4,18 @@ All notable changes, features, security upgrades, database schema migrations, an
 
 ---
 
-## 🚀 Version 2.4.2 (Version Code 11) - *Current Version*
+## 🚀 Version 2.4.3 (Version Code 12) - *Current Version*
+*Release Date: October 2026*
+
+### 🎨 POS, Checkout & Settings UI Overhaul
+- **Automated Backup Header Alignment**: Fixed header layout in `SettingsScreen.kt` so the `🟢 Active` / `🔴 Disabled` status pill and ON/OFF `Switch` toggle never overlap on phone screens.
+- **Checkout Bottom Scroll Inset**: Added bottom padding (`96.dp`) to `CheckoutScreen.kt` ensuring the `Complete Sale` button is 100% visible and tappable above system navigation bars.
+- **Receipt Subtotal & Tax Breakdown**: Updated `ReceiptScreen.kt` to explicitly display `Subtotal` and `Tax` lines above `Total` for transparent receipt math.
+- **Tax Contrast & Styling**: Standardized tax text styling across Shopping Cart, Checkout, and Confirm Sale dialogs.
+
+---
+
+## 📦 Version 2.4.2 (Version Code 11)
 *Release Date: October 2026*
 
 ### ☁️ Cloud Sync & Settings UI Refinements
